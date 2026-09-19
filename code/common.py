@@ -18,8 +18,11 @@ GREEN = "#228833"
 # One seed for the whole project, matching the weekly exercises
 SEED = 2026
 
-# Directory for saved figures, resolved relative to the repo root
-FIG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Figs")
+# Directory for saved figures. common.py lives in code/, so the repo root is
+# one level up, and figures go into the results folder.
+FIG_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results"
+)
 
 
 def savefig(name, fig=None, dpi=200):

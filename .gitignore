@@ -11,6 +11,9 @@ env/
 # OS
 .DS_Store
 
+# Keep the results folder tracked even if empty
+!results/.gitkeep
+
 # LaTeX build artifacts
 report/*.aux
 report/*.log
