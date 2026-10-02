@@ -173,7 +173,7 @@ number $\kappa=\lambda_{\max}/\lambda_{\min}$ grows. Momentum, AdaGrad, RMSProp
 and Adam \cite{duchi2011,kingma2015} accelerate or stabilise this. The adaptive methods
 give each coordinate its own step $\gamma/\sqrt{v_j}$, so $\gamma$ becomes a
 length in parameter space and cannot violate the stability bound. Stochastic
-gradient descent \cite{robbins1951} replaces the full gradient by a
+gradient descent replaces the full gradient by a
 minibatch gradient inside an epoch loop \cite{goodfellow2016}; the minibatch
 gradient is unbiased with noise $\propto 1/\sqrt{M}$, so at a constant learning
 rate the iterate equilibrates in a cloud whose radius scales with $\gamma$, and
