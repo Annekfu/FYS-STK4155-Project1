@@ -2,8 +2,11 @@
 # claude.ai, Sept-Oct 2026) from the author's weekly-exercise solutions.
 # The author adapted, tested against the closed-form and library benchmarks,
 # commented and verified it. See Appendix A of the report.
-# Source: own implementation (standard ISTA / proximal gradient descent);
-# verified against scikit-learn Lasso.
+# Source: own implementation (standard ISTA / proximal gradient descent),
+# new for this project. The author used scikit-learn Lasso earlier, in the
+# week-36 exercises (bootstrap error bars on the coefficients); the hand-written
+# ISTA, soft-thresholding and subgradient solvers here are new. Verified against
+# scikit-learn Lasso.
 """Lasso regression via gradient descent, part g.
 
 Lasso has no closed form, so we solve it with the gradient-descent
