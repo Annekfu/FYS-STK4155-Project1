@@ -54,7 +54,7 @@ better but generalises worse. Runge's function
 f(x)=\frac{1}{1+25x^2}, \qquad x\in[-1,1],
 \label{eq:runge}
 \end{equation}
-is a classic hard case for polynomial interpolation \cite{runge1901}, with a
+is a classic hard case for polynomial interpolation, with a
 sharp central peak that low-degree polynomials cannot follow and high-degree
 polynomials overfit. The general lesson is the bias--variance tradeoff, Section
 2.10 of \cite{hjorthjensen2026} and \cite{hastie2009}. It is therefore a good
@@ -115,8 +115,8 @@ f_i=\frac{s_i^2}{s_i^2+n\lambda},
 \label{eq:filter}
 \end{equation}
 so directions with large singular values are kept and small-singular-value
-directions are shrunk toward zero (Section 3.8 of \cite{hjorthjensen2026},
-\cite{vanwieringen2021}). Ridge regression goes back to \cite{hoerl1970}. These
+directions are shrunk toward zero (Section 3.8 of \cite{hjorthjensen2026}).
+Ridge regression goes back to \cite{hoerl1970}. These
 small-singular-value directions are exactly the
 ill-conditioned ones that make the OLS coefficients unstable.
 
@@ -173,7 +173,7 @@ number $\kappa=\lambda_{\max}/\lambda_{\min}$ grows. Momentum, AdaGrad, RMSProp
 and Adam \cite{duchi2011,kingma2015} accelerate or stabilise this. The adaptive methods
 give each coordinate its own step $\gamma/\sqrt{v_j}$, so $\gamma$ becomes a
 length in parameter space and cannot violate the stability bound. Stochastic
-gradient descent \cite{robbins1951,bottou2018} replaces the full gradient by a
+gradient descent \cite{robbins1951} replaces the full gradient by a
 minibatch gradient inside an epoch loop \cite{goodfellow2016}; the minibatch
 gradient is unbiased with noise $\propto 1/\sqrt{M}$, so at a constant learning
 rate the iterate equilibrates in a cloud whose radius scales with $\gamma$, and
@@ -184,7 +184,7 @@ conditions is needed to converge.
 Automatic differentiation applies the exact chain rule through the code; it is
 neither symbolic nor a finite difference, so it carries no truncation error, and
 in reverse mode a full gradient costs only two to three cost evaluations
-\cite{baydin2018,jax2018}. We use it to check our analytical gradient.
+\cite{jax2018}. We use it to check our analytical gradient.
 
 \section{Code structure and validation}
 \label{sec:code}
