@@ -98,7 +98,7 @@ $\hat{\sigma}^2=\lVert\by-\bX\hat{\bth}\rVert_2^2/(n-p)$. We solve the normal
 equations through the singular value decomposition (SVD) rather than an explicit
 inverse, for numerical stability. The quality of the fit is measured by the MSE
 and by the $R^2$ score.
-
+Features are standardised on the training statistics and the target is centred, so no test information leaks into the fit.
 \subsection{Ridge regression and singular-value shrinkage}
 Ridge adds an $\ell_2$ penalty, $C(\bth)=\frac1n\lVert\bX\bth-\by\rVert^2
 +\lambda\lVert\bth\rVert^2$, with the closed form
