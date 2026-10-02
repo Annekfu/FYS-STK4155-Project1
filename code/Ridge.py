@@ -1,3 +1,9 @@
+# LLM-assisted (code level 4): structured and written by Claude (Opus 4.8,
+# claude.ai, Sept-Oct 2026) from the author's weekly-exercise solutions.
+# The author adapted, tested against the closed-form and library benchmarks,
+# commented and verified it. See Appendix A of the report.
+# Source: adapted from the closed-form Ridge of the week-37 and week-38 exercises,
+# FYS-STK4155 lecture material (Hjorth-Jensen), https://github.com/CompPhysics/MachineLearning
 """Ridge regression for the Runge function, part b.
 
 Own closed-form implementation with the 1/n cost convention, so that the

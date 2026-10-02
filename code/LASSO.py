@@ -1,3 +1,9 @@
+# LLM-assisted (code level 4): structured and written by Claude (Opus 4.8,
+# claude.ai, Sept-Oct 2026) from the author's weekly-exercise solutions.
+# The author adapted, tested against the closed-form and library benchmarks,
+# commented and verified it. See Appendix A of the report.
+# Source: own implementation (standard ISTA / proximal gradient descent);
+# verified against scikit-learn Lasso.
 """Lasso regression via gradient descent, part g.
 
 Lasso has no closed form, so we solve it with the gradient-descent

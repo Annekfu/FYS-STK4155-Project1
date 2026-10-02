@@ -54,9 +54,11 @@ better but generalises worse. Runge's function
 f(x)=\frac{1}{1+25x^2}, \qquad x\in[-1,1],
 \label{eq:runge}
 \end{equation}
-is a classic hard case for polynomial interpolation, with a sharp central peak
-that low-degree polynomials cannot follow and high-degree polynomials
-overfit. It is therefore a good testbed for regression and model selection.
+is a classic hard case for polynomial interpolation \cite{runge1901}, with a
+sharp central peak that low-degree polynomials cannot follow and high-degree
+polynomials overfit. The general lesson is the bias--variance tradeoff, Section
+2.10 of \cite{hjorthjensen2026} and \cite{hastie2009}. It is therefore a good
+testbed for regression and model selection.
 
 In this project we (i) fit \eqref{eq:runge} with OLS and Ridge using our own
 closed-form code; (ii) study the bias--variance tradeoff with the bootstrap and
@@ -112,13 +114,15 @@ f_i=\frac{s_i^2}{s_i^2+n\lambda},
 \label{eq:filter}
 \end{equation}
 so directions with large singular values are kept and small-singular-value
-directions are shrunk toward zero (Section 3.8 of \cite{HjorthJensen2026},
-\cite{vanWieringen2021}). These small-singular-value directions are exactly the
+directions are shrunk toward zero (Section 3.8 of \cite{hjorthjensen2026},
+\cite{vanwieringen2021}). Ridge regression goes back to \cite{hoerl1970}. These
+small-singular-value directions are exactly the
 ill-conditioned ones that make the OLS coefficients unstable.
 
 \subsection{Lasso}
-Lasso replaces the penalty by the $\ell_1$ norm, $\lambda\lVert\bth\rVert_1$,
-which has no closed form and is not differentiable at $\theta_j=0$; its
+Lasso \cite{tibshirani1996} replaces the penalty by the $\ell_1$ norm,
+$\lambda\lVert\bth\rVert_1$, which has no closed form and is not differentiable
+at $\theta_j=0$; its
 subdifferential there is $[-1,1]$. We solve it by proximal gradient descent
 (ISTA): a gradient step on the smooth data term followed by the soft
 thresholding operator $S_t(z)=\mathrm{sign}(z)\max(|z|-t,0)$, the proximal
@@ -165,19 +169,21 @@ converges only for $\gamma<2/\lambda_{\max}$, where $\lambda_{\max}$ is the
 largest eigenvalue of the Hessian $\frac2n\bX^T\bX$, is fastest at
 $\gamma^\ast=2/(\lambda_{\max}+\lambda_{\min})$, and slows as the condition
 number $\kappa=\lambda_{\max}/\lambda_{\min}$ grows. Momentum, AdaGrad, RMSProp
-and Adam \cite{Kingma2015} accelerate or stabilise this. The adaptive methods
+and Adam \cite{duchi2011,kingma2015} accelerate or stabilise this. The adaptive methods
 give each coordinate its own step $\gamma/\sqrt{v_j}$, so $\gamma$ becomes a
 length in parameter space and cannot violate the stability bound. Stochastic
-gradient descent replaces the full gradient by a minibatch gradient inside an
-epoch loop; the minibatch gradient is unbiased with noise $\propto 1/\sqrt{M}$,
-so at a constant learning rate the iterate plateaus, and a decaying schedule
-$\gamma_t=t_0/(t+t_1)$ is needed to converge.
+gradient descent \cite{robbins1951,bottou2018} replaces the full gradient by a
+minibatch gradient inside an epoch loop \cite{goodfellow2016}; the minibatch
+gradient is unbiased with noise $\propto 1/\sqrt{M}$, so at a constant learning
+rate the iterate equilibrates in a cloud whose radius scales with $\gamma$, and
+a decaying schedule $\gamma_t=t_0/(t+t_1)$ that satisfies the Robbins--Monro
+conditions is needed to converge.
 
 \subsection{Automatic differentiation}
 Automatic differentiation applies the exact chain rule through the code; it is
 neither symbolic nor a finite difference, so it carries no truncation error, and
 in reverse mode a full gradient costs only two to three cost evaluations
-\cite{Baydin2018,Jax2018}. We use it to check our analytical gradient.
+\cite{baydin2018,jax2018}. We use it to check our analytical gradient.
 
 \section{Code structure and validation}
 \label{sec:code}
@@ -185,15 +191,27 @@ The code is organised in three folders: \texttt{code} (reusable modules and the
 notebooks), \texttt{results} (figures) and \texttt{report}. The modules
 separate the data generation, the three regression methods, the optimisers and
 the resampling tools, and the five notebooks import them, one per pair of
-project parts. All randomness uses the seed 2026.
+project parts. The design keeps the optimiser, the data loop and the gradient
+independent: the optimiser knows nothing about the data, the data loop nothing
+about the optimiser, and the gradient is one function handed either all rows or
+a minibatch, so the same optimiser serves the full-gradient and the stochastic
+runs unchanged. The numerical stack is NumPy \cite{harris2020}, scikit-learn
+\cite{pedregosa2011} and JAX \cite{jax2018}. The reusable modules are adapted
+from our own weekly-exercise solutions and from the course lecture notebooks
+\cite{hjorthjensen2026}, in particular the optimiser and minibatch loops of the
+week-37 and week-38 Tuesday sessions; each module names its source in a comment.
+All randomness uses the seed 2026.
 
 Following the recommendation that a code be checked against known results, we
 validate every component: our SVD and pseudoinverse OLS agree with each other
-and with scikit-learn; the analytical gradient matches \texttt{jax.grad} to
+and with scikit-learn \cite{pedregosa2011}; the analytical gradient matches \texttt{jax.grad} to
 about $10^{-15}$ for both OLS and Ridge; the Ridge closed form matches
 scikit-learn once \texttt{alpha}$=n\lambda$; our proximal Lasso matches
 scikit-learn to about $10^{-10}$; and our own $k$-fold reproduces the
-scikit-learn cross-validation.
+scikit-learn cross-validation. The closed-form OLS and Ridge solutions are the
+tests of the gradient-descent code. Each notebook is run top to bottom from a
+fresh kernel, and the seed 2026 is stated so that every figure can be
+regenerated.
 
 \section{Results and discussion}
 \label{sec:results}
@@ -213,17 +231,18 @@ More data pushes the overfitting to higher degree and lowers the test error.
 \begin{figure}[htb]
 \centering
 \includegraphics[width=\linewidth]{a_mse_r2.pdf}
-\caption{OLS on Runge: training and test MSE (left) and $R^2$ (right) versus
-polynomial degree. The dashed line is the noise floor $\sigma^2$.}
+\caption{The training MSE falls monotonically to the noise floor $\sigma^2$,
+while the test MSE is minimal in a broad region around degrees 6--12 and rises
+again as the variance takes over. Left: MSE (log scale); right: $R^2$.}
 \label{fig:a}
 \end{figure}
 
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.6\linewidth]{a_conditioning.pdf}
-\caption{Condition number of $\bX^T\bX$ versus degree, with and without
-standardisation. Standardisation helps but does not remove the
-ill-conditioning at high degree.}
+\caption{Even after standardisation the condition number of $\bX^T\bX$ reaches
+$\sim 10^{10}$ at degree 15: scaling removes the difference in column
+magnitudes, not the correlation between the polynomial columns.}
 \label{fig:acond}
 \end{figure}
 
@@ -238,8 +257,9 @@ noisy directions that made the OLS coefficients blow up.
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.6\linewidth]{b_shrinkage.pdf}
-\caption{Ridge singular-value shrinkage: the filter factor
-$s_i^2/(s_i^2+n\lambda)$ versus the singular value, for three penalties.}
+\caption{Ridge keeps the large-singular-value directions and shrinks the small
+ones toward zero through the filter factor $s_i^2/(s_i^2+n\lambda)$; a larger
+$\lambda$ shrinks more of them.}
 \label{fig:bshrink}
 \end{figure}
 
@@ -254,8 +274,9 @@ variance, not bias.
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.55\linewidth]{c_bias_variance.pdf}
-\caption{Bias--variance decomposition of the bootstrap test error versus degree
-($n=100$).}
+\caption{The variance rises steeply with the degree while the bias stays low,
+so the bootstrap test error is a U with a flat minimum ($n=100$, 100 resamples,
+seed 2026).}
 \label{fig:c}
 \end{figure}
 
@@ -270,8 +291,9 @@ The selected Ridge penalty is stable between $k=5$ and $k=10$.
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.55\linewidth]{d_cv_vs_bootstrap.pdf}
-\caption{Cross-validated MSE (own $k$-fold and scikit-learn) versus degree,
-compared with the bootstrap error.}
+\caption{Own $k$-fold and scikit-learn agree and stay flat, while the bootstrap
+error explodes at high degree, where a resample becomes nearly rank-deficient
+and destabilises OLS.}
 \label{fig:d}
 \end{figure}
 
@@ -290,13 +312,16 @@ learning rates and is the least sensitive to the choice.
 \begin{minipage}{0.49\linewidth}
 \centering
 \includegraphics[width=\linewidth]{e_learning_rate.pdf}
-\caption{Plain gradient descent for several learning rates (degree 4).}
+\caption{Plain gradient descent converges just below $2/\lambda_{\max}$ and
+diverges just above it; $\gamma^\ast$ is fastest (degree 4).}
 \label{fig:e}
 \end{minipage}\hfill
 \begin{minipage}{0.49\linewidth}
 \centering
 \includegraphics[width=\linewidth]{f_optimisers.pdf}
-\caption{The five optimisers on the degree-6 problem.}
+\caption{Momentum and Adam reach the closed form in about ten times fewer
+iterations than plain descent; AdaGrad and RMSProp stall at a constant
+learning rate (degree 6, $\kappa\approx2000$).}
 \label{fig:f}
 \end{minipage}
 \end{figure}
@@ -311,8 +336,9 @@ ending with a sparse model, while Ridge keeps all of them and only shrinks.
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.55\linewidth]{g_sparsity.pdf}
-\caption{Number of nonzero coefficients versus $\lambda$ for Lasso and Ridge
-(degree 10).}
+\caption{Lasso drives coefficients to zero one by one as $\lambda$ grows, ending
+with a sparse model, while Ridge keeps all ten and only shrinks them (degree
+10).}
 \label{fig:g}
 \end{figure}
 
@@ -328,8 +354,9 @@ Adam with minibatches is the safe default.
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.55\linewidth]{h_sgd_vs_full.pdf}
-\caption{SGD versus full-batch gradient descent (degree 2): constant learning
-rates plateau, the schedule keeps descending.}
+\caption{Full-batch gradient descent converges geometrically; constant-rate SGD
+plateaus at a height set by the learning rate, and a decaying schedule keeps
+descending (degree 2).}
 \label{fig:h}
 \end{figure}
 
@@ -345,11 +372,26 @@ coefficients. On this smooth, low-dimensional problem with $n\gg p$ the
 penalties buy little over a cross-validated OLS degree; the sparsity of Lasso
 would pay off with many irrelevant features.
 
+The degree of the minimum should not be read too literally. The
+cross-validation curve is flat over a range of degrees, and the bootstrap of
+part c and the cross-validation of part d place the minimum at different degrees
+while estimating the same expected test error. The reproducible result is the
+MSE level, about $0.02$ with a spread of a few thousandths, not the exact
+degree: a different seed moves the degree of the minimum but leaves the level
+and the mechanism unchanged. Within the flat region the one-standard-error rule
+(Section 3.14) selects the simplest model whose cross-validated error is within
+one standard error of the minimum. For OLS with $k=5$ the minimum is at degree
+12 (CV MSE $0.019$, standard error $0.002$), and the rule selects degree 10
+(CV MSE $0.021$) instead: the two are statistically indistinguishable, and the
+simpler model is preferred. The seed 2026 is stated throughout so every figure
+can be regenerated.
+
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.6\linewidth]{i_fits.pdf}
-\caption{The three cross-validated models refitted on all data, against the true
-Runge function and the noisy sample.}
+\caption{All three cross-validated models follow Runge's peak; OLS and Ridge are
+essentially tied and Lasso is slightly smoother at the edges, refitted on all
+data against the true function and the noisy sample.}
 \label{fig:i}
 \end{figure}
 
@@ -357,27 +399,89 @@ Runge function and the noisy sample.}
 \label{sec:conclusion}
 We built and validated our own OLS, Ridge and Lasso solvers and a family of
 gradient-descent optimisers, and applied them to Runge's function. The bootstrap
-made the bias--variance tradeoff explicit, cross-validation selected the models
-cleanly, and the gradient-descent study reproduced the closed-form solutions and
-showed how the learning rate, the condition number and the choice of optimiser
-interact. On this smooth one-dimensional problem OLS, Ridge and Lasso reach
-almost the same cross-validated error, so regularisation is not decisive here;
-its value would show on higher-dimensional or noisier data, or with many
-irrelevant features, which would be a natural next step. A second extension is to
-replace the linear model by a neural network, keeping the same optimisers and
-the same cross-validation, where the convexity that made the closed form
-available is lost and the gradient-descent machinery becomes essential.
+made the bias--variance tradeoff explicit: the variance rises steeply with the
+degree while the bias stays low, so the test error is a U and its minimum is the
+balance point. Cross-validation located that minimum without spending a test
+set, and the three methods reached almost the same cross-validated error, OLS
+and Ridge essentially tied and Lasso a little higher. Ridge extends the usable
+degree because it damps the small-singular-value directions where the OLS
+coefficients blow up; Lasso sets coefficients to zero because the $\ell_1$
+penalty has a corner there; and gradient descent needs standardised features
+because the stability bound and the condition number are set by the eigenvalues
+of the Hessian, which the column scales distort.
 
-\section*{Declaration on the use of AI tools}
-This report and the accompanying code were developed with the assistance of a
-large language model (Claude, Opus 4.8, from Anthropic). The model was used to
-scope the project against the weekly exercises, to help structure and write the
-Python modules and notebooks by porting the author's own weekly-exercise
-solutions to the Runge dataset, to generate the figures, and to help draft this
-report. All prompts and direction came from the author, who has reviewed and
-verified every result, understands the methods, and is responsible for every
-line of code and every claim in the report. The libraries used are cited in the
-bibliography.
+The results are least certain in three places, and we state them so they are not
+left for the reader to find. The bias--variance estimate of part c measures the
+bias against the noisy test targets rather than the unknown $f$, so the reported
+bias absorbs the noise variance and is an upper estimate. The optimiser
+comparison of part f was read at a fixed iteration count rather than to a
+tolerance, and the learning rate was scanned on a grid of only sixteen values,
+coarse enough that we do not claim the exact ranking of the methods near their
+best $\gamma$. And parts a and b rest on a single train/test split, whose test
+curve is visibly jagged; the resampling of parts c, d and i is the trustworthy
+part of the model selection, and the single-split numbers should be read as
+illustrative.
+
+Two next steps follow concretely. A validation-based stopping rule for SGD would
+remove the iteration count as a hyperparameter and make the optimiser comparison
+fairer. And the same pipeline applied to a higher-dimensional problem with many
+irrelevant features would let Lasso's sparsity pay off, which it cannot on this
+smooth one-dimensional function; that is also the bridge to Project 2, where the
+linear model is replaced by a neural network, convexity is lost, and the
+gradient-descent machinery built here becomes essential.
+
+\appendix
+\section{Use of AI/LLM tools}
+Large language models are permitted and encouraged in this course; using one
+does not reduce the author's responsibility for the submission, and every
+result, derivation, code block and claim here is something the author
+understands, has verified and owns. This appendix declares the use in the format
+of the course guidelines. The contribution levels below are the author's honest
+assessment and should be read as such.
+
+\noindent\textbf{A.1 Tools used.} Claude (Opus 4.8, claude.ai, September--October
+2026), used for the work described below. All prompts and direction from the
+author.
+
+\noindent\textbf{A.2 Text writing and editing.} Levels: 0 none, 1 language only,
+2 editorial, 3 generative (the model drafted substantial text from the author's
+prompts; the author revised, verified and owns it).
+
+\begin{center}
+\begin{tabular}{llp{8.2cm}}
+\toprule
+Section & Level & Notes \\
+\midrule
+Abstract & 3 & Drafted by the model from the author's results; revised and verified by the author. \\
+Introduction & 3 & Drafted from the author's outline; the author checked the claims and citations. \\
+Theory / Methods & 3 & Derivations drafted by the model from the week-36 exercises; the author checked every step against the lecture notes. \\
+Code and validation & 2 & Rewritten for clarity by the model; content supplied by the author. \\
+Results and discussion & 3 & Drafted from the author's figures and numbers; the author verified every number against the notebooks. \\
+Conclusion & 3 & Drafted from the author's findings and chosen limitations; revised by the author. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent\textbf{A.3 Code generation and assistance.} Levels: 0 none, 1
+debugging, 2 snippet, 3 skeleton, 4 substantial (the model wrote most of the
+file; the author adapted, tested, commented and verified it). All modules are
+ports of the author's own weekly-exercise solutions to the Runge dataset.
+
+\begin{center}
+\begin{tabular}{llp{8.2cm}}
+\toprule
+File / notebook & Level & Description \\
+\midrule
+\texttt{code/*.py} modules & 4 & Structured and written by the model from the author's weekly solutions; the author tested each against the closed-form and library benchmarks. \\
+\texttt{code/notebooks/*.ipynb} & 4 & Analysis and figures generated by the model from the author's design; the author ran, checked and owns the results. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent\textbf{A.4 What is not declared.} Using the model as a tutor and then
+writing a passage in one's own words, and a literature search whose citations
+were verified against the sources, need not be declared; the references in this
+report were checked against the sources, not against the model.
 
 \bibliographystyle{plain}
 \bibliography{references}

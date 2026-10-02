@@ -1,13 +1,13 @@
-@book{Hastie2009,
+@book{hastie2009,
   author    = {Hastie, Trevor and Tibshirani, Robert and Friedman, Jerome},
   title     = {The Elements of Statistical Learning: Data Mining, Inference, and Prediction},
-  edition   = {2nd},
+  edition   = {2},
   publisher = {Springer},
   address   = {New York},
   year      = {2009}
 }
 
-@book{Goodfellow2016,
+@book{goodfellow2016,
   author    = {Goodfellow, Ian and Bengio, Yoshua and Courville, Aaron},
   title     = {Deep Learning},
   publisher = {MIT Press},
@@ -15,22 +15,75 @@
   year      = {2016}
 }
 
-@misc{vanWieringen2021,
+@misc{hjorthjensen2026,
+  author       = {Hjorth-Jensen, Morten},
+  title        = {Applied Data Analysis and Machine Learning: Lecture Notes},
+  howpublished = {\url{https://github.com/CompPhysics/MachineLearning}},
+  year         = {2026}
+}
+
+@misc{vanwieringen2021,
   author = {van Wieringen, Wessel N.},
   title  = {Lecture notes on ridge regression},
   year   = {2021},
   note   = {arXiv:1509.09169}
 }
 
-@misc{HjorthJensen2026,
-  author = {Hjorth-Jensen, Morten},
-  title  = {Applied Data Analysis and Machine Learning, FYS-STK3155/4155 lecture notes},
-  year   = {2026},
-  note   = {University of Oslo, \url{https://github.com/CompPhysics/MachineLearning}}
+@article{hoerl1970,
+  author  = {Hoerl, Arthur E. and Kennard, Robert W.},
+  title   = {Ridge Regression: Biased Estimation for Nonorthogonal Problems},
+  journal = {Technometrics},
+  volume  = {12},
+  pages   = {55--67},
+  year    = {1970}
 }
 
-@article{Pedregosa2011,
-  author  = {Pedregosa, F. and others},
+@article{tibshirani1996,
+  author  = {Tibshirani, Robert},
+  title   = {Regression Shrinkage and Selection via the Lasso},
+  journal = {Journal of the Royal Statistical Society: Series B},
+  volume  = {58},
+  pages   = {267--288},
+  year    = {1996}
+}
+
+@inproceedings{kingma2015,
+  author    = {Kingma, Diederik P. and Ba, Jimmy},
+  title     = {Adam: A Method for Stochastic Optimization},
+  booktitle = {International Conference on Learning Representations (ICLR)},
+  year      = {2015},
+  note      = {arXiv:1412.6980}
+}
+
+@article{duchi2011,
+  author  = {Duchi, John and Hazan, Elad and Singer, Yoram},
+  title   = {Adaptive Subgradient Methods for Online Learning and Stochastic Optimization},
+  journal = {Journal of Machine Learning Research},
+  volume  = {12},
+  pages   = {2121--2159},
+  year    = {2011}
+}
+
+@article{robbins1951,
+  author  = {Robbins, Herbert and Monro, Sutton},
+  title   = {A Stochastic Approximation Method},
+  journal = {The Annals of Mathematical Statistics},
+  volume  = {22},
+  pages   = {400--407},
+  year    = {1951}
+}
+
+@article{bottou2018,
+  author  = {Bottou, L{\'e}on and Curtis, Frank E. and Nocedal, Jorge},
+  title   = {Optimization Methods for Large-Scale Machine Learning},
+  journal = {SIAM Review},
+  volume  = {60},
+  pages   = {223--311},
+  year    = {2018}
+}
+
+@article{pedregosa2011,
+  author  = {Pedregosa, Fabian and Varoquaux, Ga{\"e}l and Gramfort, Alexandre and Michel, Vincent and Thirion, Bertrand and Grisel, Olivier and Blondel, Mathieu and Prettenhofer, Peter and Weiss, Ron and Dubourg, Vincent and Vanderplas, Jake and Passos, Alexandre and Cournapeau, David and Brucher, Matthieu and Perrot, Matthieu and Duchesnay, {\'E}douard},
   title   = {Scikit-learn: Machine Learning in {P}ython},
   journal = {Journal of Machine Learning Research},
   volume  = {12},
@@ -38,14 +91,23 @@
   year    = {2011}
 }
 
-@misc{Jax2018,
-  author = {Bradbury, James and Frostig, Roy and Hawkins, Peter and Johnson, Matthew James and Leary, Chris and Maclaurin, Dougal and Necula, George and Paszke, Adam and Vander{P}las, Jake and Wanderman-Milne, Skye and Zhang, Qiao},
-  title  = {{JAX}: composable transformations of {P}ython+{N}um{P}y programs},
-  year   = {2018},
-  note   = {\url{http://github.com/google/jax}}
+@article{harris2020,
+  author  = {Harris, Charles R. and Millman, K. Jarrod and van der Walt, St{\'e}fan J. and others},
+  title   = {Array programming with {NumPy}},
+  journal = {Nature},
+  volume  = {585},
+  pages   = {357--362},
+  year    = {2020}
 }
 
-@article{Baydin2018,
+@misc{jax2018,
+  author       = {Bradbury, James and Frostig, Roy and Hawkins, Peter and Johnson, Matthew James and Leary, Chris and Maclaurin, Dougal and Necula, George and Paszke, Adam and VanderPlas, Jake and Wanderman-Milne, Skye and Zhang, Qiao},
+  title        = {{JAX}: composable transformations of {P}ython+{N}um{P}y programs},
+  howpublished = {\url{http://github.com/google/jax}},
+  year         = {2018}
+}
+
+@article{baydin2018,
   author  = {Baydin, At{\i}l{\i}m G{\"u}ne{\c{s}} and Pearlmutter, Barak A. and Radul, Alexey Andreyevich and Siskind, Jeffrey Mark},
   title   = {Automatic Differentiation in Machine Learning: a Survey},
   journal = {Journal of Machine Learning Research},
@@ -55,9 +117,11 @@
   year    = {2018}
 }
 
-@inproceedings{Kingma2015,
-  author    = {Kingma, Diederik P. and Ba, Jimmy},
-  title     = {Adam: A Method for Stochastic Optimization},
-  booktitle = {International Conference on Learning Representations (ICLR)},
-  year      = {2015}
+@article{runge1901,
+  author  = {Runge, Carl},
+  title   = {{\"U}ber empirische Funktionen und die Interpolation zwischen {\"a}quidistanten Ordinaten},
+  journal = {Zeitschrift f{\"u}r Mathematik und Physik},
+  volume  = {46},
+  pages   = {224--243},
+  year    = {1901}
 }

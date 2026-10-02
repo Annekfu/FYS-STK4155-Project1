@@ -1,3 +1,7 @@
+# LLM-assisted (code level 4): structured and written by Claude (Opus 4.8,
+# claude.ai, Sept-Oct 2026) from the author's weekly-exercise solutions.
+# The author adapted, tested against the closed-form and library benchmarks,
+# commented and verified it. See Appendix A of the report.
 """Error metrics and the bias-variance decomposition helpers.
 
 mse and r2 are the two scores required in part a. The bias_variance
