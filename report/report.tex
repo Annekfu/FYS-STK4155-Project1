@@ -97,8 +97,9 @@ coefficient, with $\sigma^2$ estimated from the residuals as
 $\hat{\sigma}^2=\lVert\by-\bX\hat{\bth}\rVert_2^2/(n-p)$. We solve the normal
 equations through the singular value decomposition (SVD) rather than an explicit
 inverse, for numerical stability. The quality of the fit is measured by the MSE
-and by the $R^2$ score.
-Features are standardised on the training statistics and the target is centred, so no test information leaks into the fit.
+and by the $R^2$ score. Features are standardised on the training statistics and
+the target is centred, so no test information leaks into the fit.
+
 \subsection{Ridge regression and singular-value shrinkage}
 Ridge adds an $\ell_2$ penalty, $C(\bth)=\frac1n\lVert\bX\bth-\by\rVert^2
 +\lambda\lVert\bth\rVert^2$, with the closed form
@@ -198,9 +199,31 @@ a minibatch, so the same optimiser serves the full-gradient and the stochastic
 runs unchanged. The numerical stack is NumPy \cite{harris2020}, scikit-learn
 \cite{pedregosa2011} and JAX \cite{jax2018}. The reusable modules are adapted
 from our own weekly-exercise solutions and from the course lecture notebooks
-\cite{hjorthjensen2026}, in particular the optimiser and minibatch loops of the
-week-37 and week-38 Tuesday sessions; each module names its source in a comment.
-All randomness uses the seed 2026.
+\cite{hjorthjensen2026}. Table~\ref{tab:provenance} records, for each module, the
+weekly exercise it is adapted from and the project parts it serves; every module
+repeats this source in a comment at the top of the file. All randomness uses the
+seed 2026.
+
+\begin{table}[h]
+\centering
+\caption{Provenance of the reusable code modules: the weekly exercise each is
+adapted from, and the project parts it serves. The Lasso solver is our own
+implementation, verified against scikit-learn.}
+\label{tab:provenance}
+\begin{tabular}{lll}
+\toprule
+Module & Adapted from & Parts \\
+\midrule
+\texttt{Get\_data.py}   & week-38 data and standardisation helpers      & a--i \\
+\texttt{OLS.py}         & week-35 SVD / pseudoinverse OLS               & a \\
+\texttt{Ridge.py}       & week-37--38 closed-form Ridge                 & b \\
+\texttt{Resample.py}    & week-36 bootstrap and own $k$-fold            & c, d \\
+\texttt{optimisers.py}  & week-37--38 optimiser and minibatch loops     & e, f, h \\
+\texttt{helper.py}      & week-37--38 gradient and Hessian helpers      & e \\
+\texttt{LASSO.py}       & own ISTA / proximal gradient descent          & g \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 Following the recommendation that a code be checked against known results, we
 validate every component: our SVD and pseudoinverse OLS agree with each other
@@ -440,8 +463,9 @@ of the course guidelines. The contribution levels below are the author's honest
 assessment and should be read as such.
 
 \noindent\textbf{A.1 Tools used.} Claude (Opus 4.8, claude.ai, September--October
-2026), used for the work described below. All prompts and direction from the
-author.
+2026), used for the work described below; and GitHub Copilot (in VS Code, during
+the weekly exercises of weeks 34--38 whose solutions the modules are ported
+from). All prompts and direction from the author.
 
 \noindent\textbf{A.2 Text writing and editing.} Levels: 0 none, 1 language only,
 2 editorial, 3 generative (the model drafted substantial text from the author's
@@ -462,26 +486,73 @@ Conclusion & 3 & Drafted from the author's findings and chosen limitations; revi
 \end{tabular}
 \end{center}
 
+\noindent\textit{Note on the Level-3 sections.} These sections were drafted by
+Claude from the author's own results, figures and outline, then revised,
+verified and taken over by the author. Representative prompts: for Theory, to
+write the bias--variance derivation following the week-36 exercises in the
+notation of this report, every step then checked against the lecture notes; for
+Results and discussion, to turn the figures and the numbers from the notebooks
+into the per-part discussion, every number then verified against the notebook
+output. The author changed wording, corrected emphasis and chose the limitations
+stated in the conclusion.
+
 \noindent\textbf{A.3 Code generation and assistance.} Levels: 0 none, 1
 debugging, 2 snippet, 3 skeleton, 4 substantial (the model wrote most of the
-file; the author adapted, tested, commented and verified it). All modules are
-ports of the author's own weekly-exercise solutions to the Runge dataset.
+file; the author adapted, tested, commented and verified it). The modules are
+ports to the Runge dataset of the author's own weekly-exercise solutions, which
+were themselves written with GitHub Copilot as an inline assistant; the Project
+1 ports and the analysis were then produced with Claude. Both tools are
+attributed below, and each module names its lecture source in a comment.
 
 \begin{center}
 \begin{tabular}{llp{8.2cm}}
 \toprule
-File / notebook & Level & Description \\
+File / notebook & Tool, level & Description \\
 \midrule
-\texttt{code/*.py} modules & 4 & Structured and written by the model from the author's weekly solutions; the author tested each against the closed-form and library benchmarks. \\
-\texttt{code/notebooks/*.ipynb} & 4 & Analysis and figures generated by the model from the author's design; the author ran, checked and owns the results. \\
+Weekly-exercise code (basis) & Copilot, 2 & Inline suggestions and short blocks while the author wrote the week 34--38 solutions; integrated and tested by the author. \\
+\texttt{code/*.py} modules & Claude, 4 & Structured and written by the model from the author's weekly solutions; the author tested each against the closed-form and library benchmarks. \\
+\texttt{code/notebooks/*.ipynb} & Claude, 4 & Analysis and figures generated by the model from the author's design; the author ran, checked and owns the results. \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+Because the assistance was substantial and pervasive rather than confined to
+separable blocks, the in-code declaration is made at file level, as the
+guidelines allow for heavy, hard-to-separate use: every module carries an
+\texttt{LLM-assisted} note and its lecture source at the top, and every notebook
+carries an LLM note in its first cell, each consistent with this appendix.
 
 \noindent\textbf{A.4 What is not declared.} Using the model as a tutor and then
 writing a passage in one's own words, and a literature search whose citations
 were verified against the sources, need not be declared; the references in this
 report were checked against the sources, not against the model.
+
+\section{Numerical setup}
+The choices below are collected here so the main text stays readable and the runs
+can be reproduced. All randomness uses the seed 2026.
+
+\noindent\textbf{Global.} Runge $f(x)=1/(1+25x^2)$ on $[-1,1]$; $n=100$ points,
+$x$ drawn uniformly, Gaussian noise $\sigma=0.1$; features standardised on the
+training statistics, target centred, no intercept column; 80/20 train/test split
+where a single split is used; scores MSE and $R^2$.
+
+\begin{center}
+\begin{tabular}{lp{10.5cm}}
+\toprule
+Part & Numerical choices \\
+\midrule
+a, OLS & degrees 1--15; own SVD solver (pinv as cross-check). \\
+b, Ridge & $1/n$ convention, penalty $n\lambda I$ (scikit-learn $\alpha=n\lambda$); $\lambda\in\{0,10^{-4},10^{-2},1\}$ for the degree sweep and $\lambda$ on $\log$-grid $[10^{-6},10^{2}]$ at degree 12. \\
+c, bootstrap & 100 resamples; degrees 1--14; $n\in\{40,100,400\}$; OLS only; scaling fixed on the training set before resampling. \\
+d, CV & $k=5$ and $10$; own $k$-fold and scikit-learn \texttt{KFold}; scaling inside folds; Ridge $\alpha$ on $\log$-grid $[10^{-4},10^{3}]$ at degree 12. \\
+e, GD & degree 4; $\gamma\in\{0.02,\gamma^\ast,0.99\gamma_{\max},1.02\gamma_{\max}\}$; $\theta_0=0$; analytical gradient and \texttt{jax.grad} ($x64$). \\
+f, optimisers & degree 6; $\gamma=0.9\gamma_{\max}$ (plain, momentum), $\gamma=0.1$ (adaptive); $\beta=0.9$, $\rho=0.99$, Adam $(\beta_1,\beta_2)=(0.9,0.999)$, $\epsilon=10^{-8}$; tolerance $10^{-6}$, budget $2\times10^{4}$; 16-point $\gamma$ scan. \\
+g, Lasso & degree 10; ISTA with step $\gamma=1/L$ ($L=\lambda_{\max}$ of the Hessian); $\lambda$ on $\log$-grid $[10^{-3},1]$; nonzero threshold $10^{-8}$; scikit-learn comparison with $\alpha=\lambda/2$. \\
+h, SGD & degree 2; $M\in\{1,5,20,100\}$; 200 epochs; schedule $(t_0,t_1)=(5,50)$, $\gamma_0=0.1$. \\
+i, selection & 5-fold CV; OLS degrees 1--12; Ridge degree $\times$ $\lambda$ ($\log$-grid $[10^{-5},1]$, 12 values); Lasso degrees $\{4,6,8,10,12\}\times\lambda$ ($\log$-grid $[10^{-4},1]$, 10 values); one-standard-error rule, $\mathrm{SE}=\text{fold std}/\sqrt{k}$. \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 \bibliographystyle{plain}
 \bibliography{references}
