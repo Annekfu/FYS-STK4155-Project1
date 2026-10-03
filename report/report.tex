@@ -233,21 +233,22 @@ runs unchanged. The numerical stack is NumPy \cite{harris2020}, scikit-learn
 \cite{pedregosa2011} and JAX \cite{jax2018}. The reusable modules are adapted
 from our own weekly-exercise solutions and from the course lecture notebooks
 \cite{hjorthjensen2026}. Table~\ref{tab:provenance} records, for each module, the
-weekly exercise it is adapted from and the project parts it serves; every module
-repeats this source in a comment at the top of the file. All randomness uses the
-seed 2026.
+weekly exercise it is adapted from and the project part that introduces it (the
+core modules are then reused in the later parts); every module repeats this
+source in a comment at the top of the file. All randomness uses the seed 2026.
 
 \begin{table}[h]
 \centering
 \caption{Provenance of the reusable code modules: the weekly exercise each is
-adapted from, and the project parts it serves. The Lasso solver is our own
-implementation, verified against scikit-learn.}
+adapted from, and the project part that introduces it (the core modules are
+reused in later parts). The Lasso solver is our own implementation, verified
+against scikit-learn.}
 \label{tab:provenance}
 \begin{tabular}{lll}
 \toprule
-Module & Adapted from & Parts \\
+Module & Adapted from & Introduced in \\
 \midrule
-\texttt{Get\_data.py}   & week-38 data and standardisation helpers      & a--i \\
+\texttt{Get\_data.py}   & week-38 data and standardisation helpers      & a (data for all) \\
 \texttt{OLS.py}         & week-35 SVD / pseudoinverse OLS               & a \\
 \texttt{Ridge.py}       & week-37--38 closed-form Ridge                 & b \\
 \texttt{Resample.py}    & week-36 bootstrap and own $k$-fold            & c, d \\
@@ -420,12 +421,16 @@ JAX returns 1 for the derivative of $|\theta|$ at zero, a valid subgradient
 since $1\in[-1,1]$; proximal gradient descent is the cleaner tool and sets
 coefficients exactly to zero. Figure~\ref{fig:g} shows the key difference
 between the penalties: Lasso removes coefficients one by one as $\lambda$ grows,
-ending with a sparse model, while Ridge keeps all of them and only shrinks. In
-exact arithmetic ISTA sends the dropped coefficients to zero; with a finite
-iteration count it leaves them near zero (for example $2\times10^{-4}$), so we
-count a coefficient as zero below a threshold of $10^{-8}$, whereas
-scikit-learn's coordinate descent returns exact zeros. The difference is the
-solver's stopping rule, not the model.
+ending with a sparse model, while Ridge keeps all of them and only shrinks. Both
+methods use the same squared-error ($\ell_2$) data term here; the $\ell_1$ and
+$\ell_2$ norms enter only as penalties on the coefficients, not as the loss on the
+residuals, so the robustness of an $\ell_1$ \emph{loss} to outliers is a separate
+property that this comparison does not probe. ISTA and scikit-learn's coordinate
+descent both use soft thresholding and return exact zeros; our subgradient solver
+never reaches an exact zero, leaving the dropped coefficients near zero (here
+about $2\times10^{-4}$), which is why ISTA is the solver we report and why a
+nonzero threshold of $10^{-8}$ is applied when counting sparsity from the
+subgradient run.
 
 \begin{figure}[htb]
 \centering
@@ -464,7 +469,16 @@ Ridge attacks the variance by shrinking the small-singular-value modes, and
 Lasso attacks the variance and also cuts the effective complexity by zeroing
 coefficients. On this smooth, low-dimensional problem with $n\gg p$ the
 penalties buy little over a cross-validated OLS degree; the sparsity of Lasso
-would pay off with many irrelevant features.
+would pay off with many irrelevant features. The coefficient blow-up we see at
+high degree also connects to recent work on overparametrized interpolation:
+\cite{wein2026} treat the Runge phenomenon as the classical analogue of the
+double-descent phenomenon in machine learning, and show that in the heavily
+overparametrized regime (degree far above the number of points) the blow-up is
+controlled by selecting the interpolant of minimal coefficient norm, an $\ell_1$
+norm in the monomial basis or an $\ell_2$ norm in a scaled Chebyshev basis. That
+is the same shrinkage principle our Ridge ($\ell_2$) and Lasso ($\ell_1$)
+penalties apply here, acting on the parameters rather than through an explicit
+penalty term.
 
 The degree of the minimum should not be read too literally. The
 cross-validation curve is flat over a range of degrees, and the bootstrap of
@@ -473,7 +487,8 @@ while estimating the same expected test error. The reproducible result is the
 MSE level, about $0.02$ with a spread of a few thousandths, not the exact
 degree: a different seed moves the degree of the minimum but leaves the level
 and the mechanism unchanged. Within the flat region the one-standard-error rule
-(Section 3.14) selects the simplest model whose cross-validated error is within
+(Section 3.14 of \cite{hjorthjensen2026}) selects the simplest model whose
+cross-validated error is within
 one standard error of the minimum. For OLS with $k=5$ the minimum is at degree
 12 (CV MSE $0.019$, standard error $0.002$), and the rule selects degree 10
 (CV MSE $0.021$) instead: the two are statistically indistinguishable, and the
@@ -536,9 +551,9 @@ Two next steps follow concretely. A validation-based stopping rule for SGD would
 remove the iteration count as a hyperparameter and make the optimiser comparison
 fairer. And the same pipeline applied to a higher-dimensional problem with many
 irrelevant features would let Lasso's sparsity pay off, which it cannot on this
-smooth one-dimensional function; that is also the bridge to Project 2, where the
-linear model is replaced by a neural network, convexity is lost, and the
-gradient-descent machinery built here becomes essential.
+smooth one-dimensional function. More broadly, the gradient-descent machinery
+built here is the tool that remains once a problem has no closed-form solution, as
+Lasso already showed, and once the cost function is no longer convex.
 
 What we take from the project is three things we did not see as clearly before
 the numerical work. First, the condition number is the quantitative bridge
@@ -550,6 +565,13 @@ reproducible across seeds; reporting the level and the one-standard-error degree
 is the honest reading. Third, on a smooth low-dimensional target the regularised
 methods add little over a cross-validated OLS degree, which sharpened our sense of
 when shrinkage and sparsity are actually worth using.
+
+It is striking that a curve Carl Runge studied in 1901 still captures the central
+tension of modern machine learning: a more flexible model can fit the data and
+still fail to generalise. The Runge phenomenon, the bias--variance tradeoff and
+double descent are one lesson seen from two sides, classical numerical analysis
+and contemporary data science --- a reminder that the field rests, at bottom, on
+mathematics.
 
 \appendix
 \section{Use of AI/LLM tools}
