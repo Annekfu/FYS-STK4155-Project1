@@ -184,7 +184,7 @@ conditions is needed to converge.
 Automatic differentiation applies the exact chain rule through the code; it is
 neither symbolic nor a finite difference, so it carries no truncation error, and
 in reverse mode a full gradient costs only two to three cost evaluations
-\cite{jax2018}. We use it to check our analytical gradient.
+\cite{baydin2018,jax2018}. We use it to check our analytical gradient.
 
 \section{Code structure and validation}
 \label{sec:code}
@@ -243,13 +243,28 @@ regenerated.
 Figure~\ref{fig:a} shows the training and test MSE against the polynomial
 degree. The training MSE falls monotonically toward the noise floor
 $\sigma^2=0.01$, while the test MSE has a broad minimum around degrees 6--12 and
-rises again at high degree as the model fits the noise. The coefficient norm
-grows with the degree, the signature of variance. Scaling does not change the
+rises again at high degree as the model fits the noise. The fitted parameters
+grow and oscillate as the degree rises (Figure~\ref{fig:acoeffs}): the largest
+coefficient is a few tenths at degree 5 but reaches several hundred at degree 15,
+the signature of variance. Scaling does not change the
 OLS predictions, but it controls the conditioning: Figure~\ref{fig:acond} shows
 that the condition number of $\bX^T\bX$ still reaches $\sim 10^{10}$ at degree 15
 even after standardisation, because standardisation removes the difference in
 column magnitudes but not the strong correlation between the polynomial columns.
 More data pushes the overfitting to higher degree and lowers the test error.
+Repeating the degree sweep at $\sigma=0.05,0.1,0.2$ (Figure~\ref{fig:anoise})
+shows the conclusions are robust to the noise level: more noise raises the error
+floor and pulls the useful degree slightly lower, but the U-shape and the
+bias--variance reading are unchanged.
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=0.6\linewidth]{a_noise.pdf}
+\caption{Test MSE against polynomial degree at three noise levels. More noise
+raises the error floor and pulls the useful degree slightly lower, while the
+U-shape and the degree window stay the same ($n=100$, seed 2026).}
+\label{fig:anoise}
+\end{figure}
 
 \begin{figure}[htb]
 \centering
@@ -267,6 +282,16 @@ again as the variance takes over. Left: MSE (log scale); right: $R^2$.}
 $\sim 10^{10}$ at degree 15: scaling removes the difference in column
 magnitudes, not the correlation between the polynomial columns.}
 \label{fig:acond}
+\end{figure}
+
+\begin{figure}[htb]
+\centering
+\includegraphics[width=0.6\linewidth]{a_coeffs.pdf}
+\caption{The fitted OLS coefficients $\theta_j$ (standardised scale, symlog
+axis) at degrees 5, 10 and 15. Low degrees stay near zero; at degree 15 the
+coefficients grow to several hundred and alternate in sign, the hallmark of
+overfitting.}
+\label{fig:acoeffs}
 \end{figure}
 
 \subsection{Ridge (part b)}
@@ -328,7 +353,11 @@ $\gamma^\ast$ is fastest. On the harder degree-6 problem ($\kappa\approx 2000$),
 momentum and Adam reach the tolerance in about 1600 and 1300 iterations against
 17000 for plain gradient descent (Figure~\ref{fig:f}); AdaGrad and RMSProp do
 not reach it at a constant rate. Adam converges over the widest range of
-learning rates and is the least sensitive to the choice.
+learning rates and is the least sensitive to the choice. A fair comparison of the
+optimisers must hold the rest fixed: the same data and starting point, the
+learning rate tuned per method since each has its own best $\gamma$, the same
+stopping tolerance, and a budget measured in gradient evaluations rather than raw
+iterations.
 
 \begin{figure}[htb]
 \centering
@@ -354,7 +383,12 @@ JAX returns 1 for the derivative of $|\theta|$ at zero, a valid subgradient
 since $1\in[-1,1]$; proximal gradient descent is the cleaner tool and sets
 coefficients exactly to zero. Figure~\ref{fig:g} shows the key difference
 between the penalties: Lasso removes coefficients one by one as $\lambda$ grows,
-ending with a sparse model, while Ridge keeps all of them and only shrinks.
+ending with a sparse model, while Ridge keeps all of them and only shrinks. In
+exact arithmetic ISTA sends the dropped coefficients to zero; with a finite
+iteration count it leaves them near zero (for example $2\times10^{-4}$), so we
+count a coefficient as zero below a threshold of $10^{-8}$, whereas
+scikit-learn's coordinate descent returns exact zeros. The difference is the
+solver's stopping rule, not the model.
 
 \begin{figure}[htb]
 \centering
