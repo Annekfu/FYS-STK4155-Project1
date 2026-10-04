@@ -39,13 +39,15 @@ $k$-fold cross-validation, and we replace the closed-form solutions by gradient
 descent with momentum and the adaptive methods AdaGrad, RMSProp and Adam, both
 with the full gradient and with minibatches. Our own solvers reproduce the
 closed-form OLS and Ridge solutions, the analytical gradient matches automatic
-differentiation to machine precision ($\sim 10^{-15}$), and our proximal Lasso
+differentiation to machine precision ($\sim 10^{-16}$), and our proximal Lasso
 matches scikit-learn to $\sim 10^{-10}$. The bootstrap makes the bias--variance
-tradeoff explicit: the variance rises steeply with the polynomial degree while
-the bias stays low. Cross-validation selects the models cleanly, and OLS
-(degree 12, CV MSE $\approx 0.019$) and Ridge ($\approx 0.021$) are essentially
-tied, with Lasso a little higher ($\approx 0.027$). On this smooth,
-low-dimensional problem the penalties buy little over a well-chosen OLS degree.
+tradeoff explicit: once the polynomial can follow the peak the bias stays low,
+while the variance rises steeply with the degree. Cross-validation locates a
+flat minimum rather than a sharp one; OLS (degree 12, CV MSE $\approx 0.019$)
+and Ridge are indistinguishable within the fold-to-fold spread, with the
+optimal Ridge penalty at the lower edge of the grid, and Lasso is a little higher
+($\approx 0.027$). On this smooth, low-dimensional problem the penalties buy
+little over a well-chosen OLS degree.
 \end{abstract}
 
 \section{Introduction}
@@ -96,7 +98,8 @@ model is correct, the estimator is unbiased and has variance
 \end{equation}
 so the diagonal of \eqref{eq:olsvar} gives a confidence interval for each
 coefficient, with $\sigma^2$ estimated from the residuals as
-$\hat{\sigma}^2=\lVert\by-\bX\hat{\bth}\rVert_2^2/(n-p)$. We solve the normal
+$\hat{\sigma}^2=\lVert\by-\bX\hat{\bth}\rVert_2^2/(n-p)$, where $p$ is the
+number of columns of $\bX$. We solve the normal
 equations through the singular value decomposition (SVD) rather than an explicit
 inverse, for numerical stability. The quality of the fit is measured by the MSE
 and by the $R^2$ score. Features are standardised on the training statistics and
@@ -179,10 +182,12 @@ scaling is fitted inside each fold, on the training folds only, so the held-out
 fold stays unseen.
 
 \subsection{Gradient descent and its extensions}
-Gradient descent updates $\bth_{k+1}=\bth_k-\gamma\nabla C(\bth_k)$ with the
-analytical gradient $\nabla C_{\text{OLS}}=\frac2n\bX^T(\bX\bth-\by)$. It
-converges only for $\gamma<2/\lambda_{\max}$, where $\lambda_{\max}$ is the
-largest eigenvalue of the Hessian $\frac2n\bX^T\bX$, is fastest at
+Gradient descent updates $\bth_{k+1}=\bth_k-\gamma\nabla C(\bth_k)$ with
+learning rate $\gamma$ (written $\eta$ in the project text) and the analytical
+gradient $\nabla C_{\text{OLS}}=\frac2n\bX^T(\bX\bth-\by)$. It converges only
+for $\gamma<2/\lambda_{\max}$, where $\lambda_{\max}$ is the largest eigenvalue
+of the Hessian $\frac2n\bX^T\bX$ (the Hessian eigenvalues $\lambda_{\max}$,
+$\lambda_{\min}$ are not to be confused with the penalty $\lambda$), is fastest at
 $\gamma^\ast=2/(\lambda_{\max}+\lambda_{\min})$, and slows as the condition
 number $\kappa=\lambda_{\max}/\lambda_{\min}$ grows. Momentum, AdaGrad, RMSProp
 and Adam \cite{duchi2011,kingma2015} accelerate or stabilise this. The adaptive methods
@@ -234,8 +239,9 @@ runs unchanged. The numerical stack is NumPy \cite{harris2020}, scikit-learn
 from our own weekly-exercise solutions and from the course lecture notebooks
 \cite{hjorthjensen2026}. Table~\ref{tab:provenance} records, for each module, the
 weekly exercise it is adapted from and the project part that introduces it (the
-core modules are then reused in the later parts); every module repeats this
-source in a comment at the top of the file. All randomness uses the seed 2026.
+core modules are then reused in the later parts); each of these method modules
+repeats its source in a comment at the top of the file. All randomness uses the
+seed 2026.
 
 \begin{table}[h]
 \centering
@@ -262,10 +268,13 @@ Module & Adapted from & Introduced in \\
 Following the recommendation that a code be checked against known results, we
 validate every component: our SVD and pseudoinverse OLS agree with each other
 and with scikit-learn \cite{pedregosa2011}; the analytical gradient matches \texttt{jax.grad} to
-about $10^{-15}$ for both OLS and Ridge; the Ridge closed form matches
+$2.2\times10^{-16}$ for both OLS and Ridge; the Ridge closed form matches
 scikit-learn once \texttt{alpha}$=n\lambda$; our proximal Lasso matches
-scikit-learn to about $10^{-10}$; and our own $k$-fold reproduces the
-scikit-learn cross-validation. The closed-form OLS and Ridge solutions are the
+scikit-learn to about $10^{-10}$ once its \texttt{alpha} is set to $\lambda/2$,
+since scikit-learn's Lasso uses a $1/(2n)$ data term; and our own $k$-fold agrees
+closely with the scikit-learn cross-validation (the two use different fold
+assignments, so they agree to within the fold-to-fold spread rather than
+exactly). The closed-form OLS and Ridge solutions are the
 tests of the gradient-descent code. Each notebook is run top to bottom from a
 fresh kernel, and the seed 2026 is stated so that every figure can be
 regenerated.
@@ -347,8 +356,9 @@ $\lambda$ shrinks more of them.}
 
 \subsection{Bias--variance with the bootstrap (part c)}
 Figure~\ref{fig:c} decomposes the bootstrap test error into squared bias and
-variance. The bias is low and roughly flat, the variance rises steeply with the
-degree, and their sum gives the U-shaped test error. Repeating for
+variance. The bias falls quickly over the first few degrees, as the polynomial
+becomes able to follow the peak, and is then low and roughly flat; the variance
+rises steeply with the degree, and their sum gives the U-shaped test error. Repeating for
 $n=40,100,400$ shows that more data lowers the variance and shifts the
 overfitting to higher degree, while the bias barely moves: data reduces
 variance, not bias. This reproduces the textbook bias--variance account
@@ -360,38 +370,62 @@ phenomenon in regression form.
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.55\linewidth]{c_bias_variance.pdf}
-\caption{The variance rises steeply with the degree while the bias stays low,
-so the bootstrap test error is a U with a flat minimum ($n=100$, 100 resamples,
-seed 2026).}
+\caption{The bias falls at low degree and then stays low, while the variance
+rises steeply with the degree, so the bootstrap test error is a U with a flat
+minimum ($n=100$, 100 resamples, seed 2026).}
 \label{fig:c}
 \end{figure}
 
 \subsection{Cross-validation (part d)}
-Our own $k$-fold and the scikit-learn cross-validation agree closely, and both
-track the bootstrap error and point to the same degree window
-(Figure~\ref{fig:d}). At high degree the bootstrap error explodes while the
-cross-validation stays flat, because a bootstrap resample can be nearly
-rank-deficient, which destabilises OLS, whereas $k$-fold keeps distinct points.
-The selected Ridge penalty is stable between $k=5$ and $k=10$.
+Our own $k$-fold and the scikit-learn cross-validation agree to within about
+$0.003$ up to degree 12 and place their minima at the same degree, 12, at
+$0.019$ and $0.020$ (Figure~\ref{fig:d}); above degree 12 the two separate,
+because they draw different fold assignments and the degree-13 and 14 fits are
+ill-conditioned enough for that to matter. The bootstrap behaves differently
+from both: its minimum sits at degree 6 rather than 12, and above degree 10 its
+error explodes, reaching about $10$ at degree 12 and $170$ at degree 13, where
+cross-validation stays flat. The reason is that a bootstrap resample repeats
+points and so trains on fewer distinct ones, which worsens the conditioning of
+the high-degree fit, whereas $k$-fold trains on distinct points. The two are
+therefore related but not interchangeable estimates of the test error, a point
+we return to in the discussion. The selected Ridge penalty is stable between
+$k=5$ and $k=10$ ($\alpha\approx3\times10^{-4}$ and $5\times10^{-4}$, CV MSE
+$0.0199$ and $0.0189$).
 
 \begin{figure}[htb]
 \centering
 \includegraphics[width=0.55\linewidth]{d_cv_vs_bootstrap.pdf}
-\caption{Own $k$-fold and scikit-learn agree and stay flat, while the bootstrap
-error explodes at high degree, where a resample becomes nearly rank-deficient
-and destabilises OLS.}
+\caption{Own $k$-fold and scikit-learn stay flat and agree up to degree 12,
+while the bootstrap error explodes above degree 10, where a resample has fewer
+distinct points and the high-degree fit is poorly conditioned ($n=100$, $k=5$,
+log scale).}
 \label{fig:d}
 \end{figure}
 
 \subsection{Gradient descent and the adaptive methods (parts e, f)}
-The analytical and automatic gradients agree to machine precision, so either can
-drive the descent. Figure~\ref{fig:e} confirms the stability edge: just below
-$2/\lambda_{\max}$ the iteration converges, just above it diverges, and
-$\gamma^\ast$ is fastest. On the harder degree-6 problem ($\kappa\approx 2000$),
+The analytical and automatic gradients agree to machine precision, and when each
+drives the same plain descent at $\gamma^\ast$ on the degree-4 problem the two
+runs are identical to $3.3\times10^{-16}$ in every iterate, and both stop after
+722 iterations at a gradient norm below $10^{-10}$, within $1.7\times10^{-10}$ of
+the closed form. Gradient descent on Ridge
+($\lambda=0.01$) stops after 578 iterations, within $1.3\times10^{-10}$ of the
+Ridge closed form, fewer iterations than
+for OLS because the penalty raises $\lambda_{\min}$ and lowers the condition
+number from 64.5 to 51.7; its stability edge is $2/(\lambda_{\max}+2\lambda)$,
+and $0.99$ of it converges while $1.02$ of it diverges. Figure~\ref{fig:e} shows
+the same edge for OLS: just below $2/\lambda_{\max}$ the iteration converges,
+just above it diverges, and $\gamma^\ast$ is fastest. On the harder degree-6
+problem ($\kappa\approx 2000$),
 momentum and Adam reach the tolerance in about 1600 and 1300 iterations against
 17000 for plain gradient descent (Figure~\ref{fig:f}); AdaGrad and RMSProp do
-not reach it at a constant rate. Adam converges over the widest range of
-learning rates and is the least sensitive to the choice. A fair comparison of the
+not reach it at a constant rate. Adam's $1-\beta_1^t$ and $1-\beta_2^t$ factors
+matter from the first step: both running averages start at zero and are biased
+toward it, but the second moment more strongly, so without the correction the
+update $m/\sqrt{r}$ would start at $3.2\gamma$ for a constant gradient and grow
+to about $6\gamma$, where the corrected step is exactly $\gamma$.
+Figure~\ref{fig:flr} scans the learning rate
+itself: Adam converges over the widest range and is the least sensitive to the
+choice, while plain descent succeeds at a single grid point. A fair comparison of the
 optimisers must hold the rest fixed: the same data and starting point, the
 learning rate tuned per method since each has its own best $\gamma$, the same
 stopping tolerance, and a budget measured in gradient evaluations rather than raw
@@ -416,6 +450,21 @@ learning rate (degree 6, $\kappa\approx2000$).}
 \end{minipage}
 \end{figure}
 
+\begin{figure}[htb]
+\centering
+\includegraphics[width=0.55\linewidth]{f_lr_sensitivity.pdf}
+\caption{Iterations to reach $\|\theta_k-\hat\theta\|<10^{-6}$ against the
+learning rate, over a 16-point log grid (degree 6, budget $2\times10^4$;
+plain, momentum, AdaGrad and Adam). Plain gradient descent reaches the tolerance
+at one grid point only, just below $2/\lambda_{\max}$, and AdaGrad at none, so
+those two curves are nearly empty. Momentum works over a wider window and is
+fastest at its best point, but falls off sharply on either side. Adam converges
+at every $\gamma$ tested, across three decades, with a shallow optimum near
+$\gamma=0.06$ --- it is the least sensitive to the choice, which is why it
+transfers between problems without retuning.}
+\label{fig:flr}
+\end{figure}
+
 \subsection{Lasso (part g)}
 JAX returns 1 for the derivative of $|\theta|$ at zero, a valid subgradient
 since $1\in[-1,1]$; proximal gradient descent is the cleaner tool and sets
@@ -426,11 +475,11 @@ methods use the same squared-error ($\ell_2$) data term here; the $\ell_1$ and
 $\ell_2$ norms enter only as penalties on the coefficients, not as the loss on the
 residuals, so the robustness of an $\ell_1$ \emph{loss} to outliers is a separate
 property that this comparison does not probe. ISTA and scikit-learn's coordinate
-descent both use soft thresholding and return exact zeros; our subgradient solver
-never reaches an exact zero, leaving the dropped coefficients near zero (here
-about $2\times10^{-4}$), which is why ISTA is the solver we report and why a
-nonzero threshold of $10^{-8}$ is applied when counting sparsity from the
-subgradient run.
+descent both use soft thresholding and return exact zeros, so when we count
+nonzero coefficients a threshold of $10^{-8}$ is needed only to guard against
+floating-point noise. Our subgradient solver never reaches an exact zero and
+leaves the dropped coefficients near $2.5\times10^{-4}$, which is why ISTA is the
+solver we report.
 
 \begin{figure}[htb]
 \centering
@@ -446,9 +495,25 @@ On the well-conditioned degree-2 problem (Figure~\ref{fig:h}), full-batch
 gradient descent converges geometrically to machine precision. Constant-rate
 SGD does not converge; it plateaus at a height that scales with the learning
 rate, because the iterate is a random walk in a noise cloud. A decaying schedule
-shrinks that cloud and keeps descending. A single-point step can even diverge in
-the ill-conditioned case, since it sees that one point's Hessian, which is why
-Adam with minibatches is the safe default.
+shrinks that cloud and keeps descending. With the adaptive optimisers in the
+minibatch loop ($M=5$, 200 epochs, constant $\gamma$) every method plateaus:
+plain at $8\times10^{-3}$, momentum at $3\times10^{-2}$, and the per-coordinate
+methods lower, RMSProp at $6\times10^{-4}$, Adam at $3\times10^{-3}$ and AdaGrad
+lowest at $1.5\times10^{-4}$, because its $1/\sqrt{t}$ decay of the effective
+step acts as a built-in schedule. Running Adam at constant $\gamma$ for 10, 50,
+200 and 500 epochs gives $5\times10^{-3}$, $9\times10^{-3}$, $3\times10^{-3}$ and
+$1\times10^{-2}$: more epochs do not converge, the iterate keeps wandering in the
+cloud, which is the Robbins--Monro point made concrete. On the ill-conditioned
+degree-10 problem with single-point steps ($M=1$) at $\gamma=0.1$, plain and
+momentum diverge while AdaGrad, RMSProp and Adam stay bounded. The reason is that
+a single-point step does not see the average Hessian but that one point's, whose
+curvature is $2\lVert\bx_i\rVert^2=331$ at the largest row against
+$\lambda_{\max}=12.8$ for the full Hessian: the stability bound for $M=1$ is
+therefore $\gamma<2/(2\lVert\bx_i\rVert^2)=0.006$, not the full-batch
+$2/\lambda_{\max}=0.156$, and $\gamma=0.1$ sits a factor 17 above it. The
+adaptive methods survive because they cap the step per coordinate near $\gamma$
+regardless of the local curvature; this is why Adam with minibatches is the safe
+default.
 
 \begin{figure}[htb]
 \centering
@@ -460,11 +525,21 @@ descending (degree 2).}
 \end{figure}
 
 \subsection{Final comparison (part i)}
-Selecting each method by 5-fold cross-validation on Runge gives OLS at degree 12
-(CV MSE $\approx 0.019$), Ridge at degree 12 with a tiny penalty
-($\approx 0.021$) and Lasso at degree 6 ($\approx 0.027$). OLS and Ridge are
-essentially tied and Lasso is slightly higher; all three follow Runge's peak
-(Figure~\ref{fig:i}). Read through \eqref{eq:bv}, OLS controls only the degree,
+Selecting each method by 5-fold cross-validation on Runge (Table~\ref{tab:final})
+gives OLS at degree 12 (CV MSE $\approx 0.019$), Ridge at $\approx 0.019$ and
+Lasso at degree 6 ($\approx 0.027$). OLS and Ridge are indistinguishable within
+the fold-to-fold spread (standard error $\approx 0.002$) and Lasso is slightly
+higher; all three follow Runge's peak (Figure~\ref{fig:i}). The optimal Ridge
+penalty sits at the lower edge of the $\lambda$ grid ($\lambda\approx
+3\times10^{-8}$ on a grid reaching down to $10^{-8}$, Figure~\ref{fig:iheat}),
+so Ridge effectively reduces to OLS here; its one visible effect is that a tiny penalty keeps degrees
+13--14 usable, where unpenalised OLS already blows up (OLS at degree 14: CV MSE
+$\approx 0.054$). We extended both grids beyond a first pass (degrees up to 15,
+$\lambda$ down to $10^{-8}$) because the first-pass optima, degree 12 and
+$\lambda=10^{-5}$, sat on the grid boundaries; on the extended grid the OLS
+minimum at degree 12 is interior, while the Ridge $\lambda$ optimum is not, which
+is the data telling us the penalty is not needed. Read through \eqref{eq:bv},
+OLS controls only the degree,
 Ridge attacks the variance by shrinking the small-singular-value modes, and
 Lasso attacks the variance and also cuts the effective complexity by zeroing
 coefficients. On this smooth, low-dimensional problem with $n\gg p$ the
@@ -482,11 +557,14 @@ penalty term.
 
 The degree of the minimum should not be read too literally. The
 cross-validation curve is flat over a range of degrees, and the bootstrap of
-part c and the cross-validation of part d place the minimum at different degrees
-while estimating the same expected test error. The reproducible result is the
-MSE level, about $0.02$ with a spread of a few thousandths, not the exact
-degree: a different seed moves the degree of the minimum but leaves the level
-and the mechanism unchanged. Within the flat region the one-standard-error rule
+part c and the cross-validation of part d place their minima at different
+degrees (6 and 12) inside that flat window. The two estimators also sit at
+different levels, about $0.037$ for the bootstrap and $0.019$ for
+cross-validation: a bootstrap resample repeats points and so trains on fewer
+distinct ones, which raises the variance of each fit, so the two are related but
+not identical estimates of the test error. Within one estimator the reproducible
+quantity is the MSE level, not the exact degree, which is the argmin of a flat,
+noisy curve. Within the flat region the one-standard-error rule
 (Section 3.14 of \cite{hjorthjensen2026}) selects the simplest model whose
 cross-validated error is within
 one standard error of the minimum. For OLS with $k=5$ the minimum is at degree
@@ -497,25 +575,41 @@ can be regenerated.
 
 \begin{figure}[htb]
 \centering
-\includegraphics[width=0.6\linewidth]{i_fits.pdf}
+\begin{minipage}{0.49\linewidth}
+\centering
+\includegraphics[width=\linewidth]{i_fits.pdf}
 \caption{All three cross-validated models follow Runge's peak; OLS and Ridge are
 essentially tied and Lasso is slightly smoother at the edges, refitted on all
 data against the true function and the noisy sample.}
 \label{fig:i}
+\end{minipage}\hfill
+\begin{minipage}{0.49\linewidth}
+\centering
+\includegraphics[width=\linewidth]{i_ridge_heatmap.pdf}
+\caption{Ridge cross-validated error over degree and penalty ($k=5$; degrees
+1--15, $\lambda$ on a log grid from $10^{-8}$ to $1$). The star marks the
+minimum, at degree 14 and $\lambda\approx3\times10^{-8}$, on the left edge of
+the grid. The dark region is flat for every $\lambda$ below about $10^{-3}$, so
+the data does not determine a penalty: Ridge is effectively reducing to OLS
+here.}
+\label{fig:iheat}
+\end{minipage}
 \end{figure}
 
 \begin{table}[h]
 \centering
-\caption{Cross-validated model selection on Runge ($k=5$, seed 2026). The last
-column names the module and function that produced each fit.}
+\caption{Cross-validated model selection on Runge ($k=5$, seed 2026; degrees
+1--15, Ridge $\lambda$ on a log grid down to $10^{-8}$). The Ridge optimum lies
+at the lower edge of the $\lambda$ grid. The last column names the module and
+function that produced each fit.}
 \label{tab:final}
 \begin{tabular}{llll}
 \toprule
 Method & Best model & CV MSE & Code \\
 \midrule
-OLS   & degree 12                                   & $0.019$ & \texttt{OLS.py: ols\_svd} \\
-Ridge & degree 12, $\lambda\approx10^{-5}$          & $0.021$ & \texttt{Ridge.py: ridge\_closed\_form} \\
-Lasso & degree 6, $\lambda\approx8\times10^{-4}$     & $0.027$ & \texttt{LASSO.py: lasso\_ista} \\
+OLS   & degree 12                                            & $0.0191$ & \texttt{OLS.py: ols\_svd} \\
+Ridge & degree 14, $\lambda\approx3\times10^{-8}$               & $0.0185$ & \texttt{Ridge.py: ridge\_closed\_form} \\
+Lasso & degree 6, $\lambda\approx8\times10^{-4}$              & $0.0269$ & \texttt{LASSO.py: lasso\_ista} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -524,9 +618,9 @@ Lasso & degree 6, $\lambda\approx8\times10^{-4}$     & $0.027$ & \texttt{LASSO.p
 \label{sec:conclusion}
 We built and validated our own OLS, Ridge and Lasso solvers and a family of
 gradient-descent optimisers, and applied them to Runge's function. The bootstrap
-made the bias--variance tradeoff explicit: the variance rises steeply with the
-degree while the bias stays low, so the test error is a U and its minimum is the
-balance point. Cross-validation located that minimum without spending a test
+made the bias--variance tradeoff explicit: beyond the lowest degrees the bias
+stays low while the variance rises steeply with the degree, so the test error is
+a U and its minimum is the balance point. Cross-validation located that minimum without spending a test
 set, and the three methods reached almost the same cross-validated error, OLS
 and Ridge essentially tied and Lasso a little higher. Ridge extends the usable
 degree because it damps the small-singular-value directions where the OLS
@@ -539,10 +633,12 @@ The results are least certain in three places, and we state them so they are not
 left for the reader to find. The bias--variance estimate of part c measures the
 bias against the noisy test targets rather than the unknown $f$, so the reported
 bias absorbs the noise variance and is an upper estimate. The optimiser
-comparison of part f was read at a fixed iteration count rather than to a
-tolerance, and the learning rate was scanned on a grid of only sixteen values,
-coarse enough that we do not claim the exact ranking of the methods near their
-best $\gamma$. And parts a and b rest on a single train/test split, whose test
+comparison of part f ran each method for a fixed budget of 20\,000 iterations
+and read off the iteration at which the distance to the closed form first fell
+below $10^{-6}$, so a method that did not reach that tolerance within the budget
+is reported as not converging rather than as merely slower; and the learning
+rate was scanned on a grid of only sixteen values, coarse enough that we do not
+claim the exact ranking of the methods near their best $\gamma$. And parts a and b rest on a single train/test split, whose test
 curve is visibly jagged; the resampling of parts c, d and i is the trustworthy
 part of the model selection, and the single-split numbers should be read as
 illustrative.
@@ -560,9 +656,9 @@ the numerical work. First, the condition number is the quantitative bridge
 between high polynomial degree and the blow-up of the OLS coefficients, so the
 instability that motivates Ridge and Lasso is already visible in part a rather
 than appearing only once the penalties are introduced. Second, the exact degree
-of the cross-validation minimum is a noisy quantity, while its level is
-reproducible across seeds; reporting the level and the one-standard-error degree
-is the honest reading. Third, on a smooth low-dimensional target the regularised
+of the cross-validation minimum is a noisy quantity, the argmin of a flat curve,
+while its level is the stable result; reporting the level and the
+one-standard-error degree is the honest reading. Third, on a smooth low-dimensional target the regularised
 methods add little over a cross-validated OLS degree, which sharpened our sense of
 when shrinkage and sparsity are actually worth using.
 
@@ -665,11 +761,11 @@ a, OLS & degrees 1--15; own SVD solver (pinv as cross-check). \\
 b, Ridge & $1/n$ convention, penalty $n\lambda I$ (scikit-learn $\alpha=n\lambda$); $\lambda\in\{0,10^{-4},10^{-2},1\}$ for the degree sweep and $\lambda$ on $\log$-grid $[10^{-6},10^{2}]$ at degree 12. \\
 c, bootstrap & 100 resamples; degrees 1--14; $n\in\{40,100,400\}$; OLS only; scaling fixed on the training set before resampling. \\
 d, CV & $k=5$ and $10$; own $k$-fold and scikit-learn \texttt{KFold}; scaling inside folds; Ridge $\alpha$ on $\log$-grid $[10^{-4},10^{3}]$ at degree 12. \\
-e, GD & degree 4; $\gamma\in\{0.02,\gamma^\ast,0.99\gamma_{\max},1.02\gamma_{\max}\}$; $\theta_0=0$; analytical gradient and \texttt{jax.grad} ($x64$). \\
+e, GD & degree 4; $\gamma\in\{0.02,\gamma^\ast,0.99\gamma_{\max},1.02\gamma_{\max}\}$; $\theta_0=0$; analytical gradient and \texttt{jax.grad} ($x64$), each also used to drive the descent; stopping tolerance $10^{-10}$ on the gradient norm, budget $2000$. Ridge at $\lambda=10^{-2}$, with $\gamma_{\max}$ and $\gamma^\ast$ formed from the eigenvalues of the Ridge Hessian $(2/n)X^TX+2\lambda I$, and the stability edge checked at $0.99\gamma_{\max}$ and $1.02\gamma_{\max}$. \\
 f, optimisers & degree 6; $\gamma=0.9\gamma_{\max}$ (plain, momentum), $\gamma=0.1$ (adaptive); $\beta=0.9$, $\rho=0.99$, Adam $(\beta_1,\beta_2)=(0.9,0.999)$, $\epsilon=10^{-8}$; tolerance $10^{-6}$, budget $2\times10^{4}$; 16-point $\gamma$ scan. \\
 g, Lasso & degree 10; ISTA with step $\gamma=1/L$ ($L=\lambda_{\max}$ of the Hessian); $\lambda$ on $\log$-grid $[10^{-3},1]$; nonzero threshold $10^{-8}$; scikit-learn comparison with $\alpha=\lambda/2$. \\
-h, SGD & degree 2; $M\in\{1,5,20,100\}$; 200 epochs; schedule $(t_0,t_1)=(5,50)$, $\gamma_0=0.1$. \\
-i, selection & 5-fold CV; OLS degrees 1--12; Ridge degree $\times$ $\lambda$ ($\log$-grid $[10^{-5},1]$, 12 values); Lasso degrees $\{4,6,8,10,12\}\times\lambda$ ($\log$-grid $[10^{-4},1]$, 10 values); one-standard-error rule, $\mathrm{SE}=\text{fold std}/\sqrt{k}$. \\
+h, SGD & degree 2; $M\in\{1,5,20,100\}$ (the training set has 80 points, so $M=100$ is the full batch); 200 epochs; schedule $(t_0,t_1)=(5,50)$, $\gamma_0=0.1$. All five optimisers at $M=5$, 200 epochs, with $\gamma$ per method (plain $0.1$, momentum $0.05$, AdaGrad $0.1$, RMSProp $0.01$, Adam $0.01$); epoch sweep $\{10,50,200,500\}$ with Adam at $\gamma=0.01$; single-point steps ($M=1$, 100 epochs, $\gamma=0.1$) on the degree-10 problem, compared with the full-Hessian bound $2/\lambda_{\max}$ and the single-point bound $1/\|x_i\|^2$. \\
+i, selection & 5-fold CV; OLS degrees 1--15; Ridge degree $\times$ $\lambda$ (degrees 1--15, $\lambda$ on $\log$-grid $[10^{-8},1]$, 17 values); Lasso degrees $\{4,6,8,10,12\}\times\lambda$ ($\log$-grid $[10^{-4},1]$, 10 values); one-standard-error rule, $\mathrm{SE}=\text{fold std}/\sqrt{k}$. \\
 \bottomrule
 \end{tabular}
 \end{center}
