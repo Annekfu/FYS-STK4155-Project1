@@ -24,3 +24,4 @@ report/*.synctex.gz
 report/*.toc
 report/*.fls
 report/*.fdb_latexmk
+report/

@@ -28,18 +28,23 @@ def r2(y, y_pred):
     return 1.0 - ss_res / ss_tot
 
 
-def bias_variance(y_test, y_pred):
+def bias_variance(y_test, y_pred, f_test=None):
     """Bias-variance decomposition from a bootstrap prediction matrix.
 
     y_test has shape (n_test,). y_pred has shape (n_test, n_bootstraps),
     one column per bootstrap training set. Returns the measured test error,
-    the squared bias and the variance, averaged over the test points. Note
-    that the measured bias contains the noise variance sigma^2, so the
-    identity error = bias + variance holds per point but the bias term is
-    an upper estimate of the true squared bias.
+    the squared bias and the variance, averaged over the test points.
+
+    By default the bias is measured against the noisy targets y_test, so it
+    contains the noise variance sigma^2 and error = bias + variance holds
+    exactly. If the true function f_test is given (known for Runge), the
+    bias is measured against it instead; then error = bias + variance +
+    mean(eps^2) + 2 mean(eps (f - mean prediction)), where the last term
+    vanishes in expectation but not on a finite test set.
     """
     y_test = np.ravel(y_test).reshape(-1, 1)
+    target = y_test if f_test is None else np.ravel(f_test).reshape(-1, 1)
     error = np.mean(np.mean((y_test - y_pred) ** 2, axis=1))
-    bias = np.mean((y_test - np.mean(y_pred, axis=1, keepdims=True)) ** 2)
+    bias = np.mean((target - np.mean(y_pred, axis=1, keepdims=True)) ** 2)
     variance = np.mean(np.var(y_pred, axis=1))
     return error, bias, variance

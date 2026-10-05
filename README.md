@@ -32,7 +32,7 @@ and report.
         5_model_selection.ipynb  part i
 
     results/              saved figures and selected outputs
-    report/               LaTeX source of the report
+ 
 
 ## Reproducibility
 

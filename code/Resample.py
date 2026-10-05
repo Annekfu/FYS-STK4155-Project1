@@ -20,13 +20,14 @@ from Errors import mse, bias_variance
 
 
 def bootstrap_bias_variance(X_train, X_test, y_train, y_test, fit_predict,
-                            n_bootstraps=100, seed=2026):
+                            n_bootstraps=100, seed=2026, f_test=None):
     """Bootstrap estimate of test error, squared bias and variance.
 
     fit_predict(X_tr, y_tr, X_te) returns predictions on X_te for one
     bootstrap training set. Returns error, bias and variance. The caller
     supplies already-scaled design matrices, or a fit_predict that scales
-    inside.
+    inside. Pass f_test (the true function at the test points, on the same
+    centred scale as y_test) to measure the bias against f instead of y.
     """
     y_test = np.ravel(y_test)
     y_pred = np.empty((y_test.shape[0], n_bootstraps))
@@ -34,7 +35,7 @@ def bootstrap_bias_variance(X_train, X_test, y_train, y_test, fit_predict,
     for b in range(n_bootstraps):
         idx = rng.integers(0, X_train.shape[0], X_train.shape[0])
         y_pred[:, b] = np.ravel(fit_predict(X_train[idx], np.ravel(y_train)[idx], X_test))
-    return bias_variance(y_test, y_pred)
+    return bias_variance(y_test, y_pred, f_test=f_test)
 
 
 def kfold_cv(x, y, model, k=5, seed=2026):
